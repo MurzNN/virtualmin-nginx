@@ -263,12 +263,12 @@ sub feature_modify
   
   if($d->{'alias'}) 
   {
-    &$virtual_server::first_print("feature_modify: Nginx alias mode - don't create separate conf file.");
+    &$virtual_server::first_print("nginx feature_modify: Nginx alias mode - don't create separate conf file.");
     
     $d_parent = &virtual_server::get_domain($d->{'parent'});
     
     if($d->{'dom'} eq $oldd->{'dom'}) {
-      &$virtual_server::second_print("feature_modify: alias don't changed, do nothing.");
+      &$virtual_server::second_print("nginx feature_modify: alias don't changed, do nothing.");
       return;
     }
     
@@ -299,7 +299,7 @@ sub feature_modify
       $log_dir = "$d->{'home'}/logs/";
       $old_log_dir = "$oldd->{'home'}/logs/";
     }
-    &$virtual_server::first_print("Changing conf files from $oldd->{'dom'} to $d->{'dom'}");
+    &$virtual_server::first_print("nginx Changing conf files from $oldd->{'dom'} to $d->{'dom'}");
     
     open(CONFFILE, "<" . $conf_dir . $sites_available_dir . $oldd->{'dom'} . ".conf");
     @conf=<CONFFILE>;
@@ -368,7 +368,7 @@ sub feature_setup
   
   if($d->{'alias'}>0) 
   {
-    &$virtual_server::first_print("feature_setup: Nginx alias mode - don't create separate conf file.");
+    &$virtual_server::first_print("nginx feature_setup: Nginx alias mode - don't create separate conf file.");
 
     $d_parent = &virtual_server::get_domain($d->{'parent'});
     
@@ -378,10 +378,10 @@ sub feature_setup
     
     $conf=join("",@conf);
     
-    if( $conf =~ m/server_name\s(.*\s)?$d->{'dom'}/mi ) { # find exist record for this alias
-      &$virtual_server::second_print("feature_modify: found record for this alias, not creating new one.");
+    if( $conf =~ m/server_name(\s.*)?\s$d->{'dom'}/mi ) { # find exist record for this alias
+      &$virtual_server::second_print("nginx feature_modify: found record for this alias, not creating new one.");
     } else {
-      &$virtual_server::first_print("feature_modify: can't find record for this alias, creating new one.");
+      &$virtual_server::first_print("nginx feature_modify: can't find record for this alias, creating new one.");
       feature_setup_alias($d_parent,$d);
       reload_nginx();    
     }
@@ -452,8 +452,13 @@ sub feature_setup_alias
   close(CONFFILE);
   
   $conf=join("",@conf);
-  
-  $conf =~ s/(server_name(\s.*?)?\s$d->{'dom'} www\.$d->{'dom'})/$1 $alias->{'dom'} www\.$alias->{'dom'}/gi;
+
+  if( $conf =~ m/server_name(\s.*)?\s$alias->{'dom'}/mi ) { # find exist record for this alias
+      &$virtual_server::first_print("nginx feature_setup_alias: alias ".$alias->{'dom'}." already exists for domain ".$d->{'dom'});
+  } else {
+    $conf =~ s/(server_name(\s.*?)?\s$d->{'dom'} www\.$d->{'dom'})/$1 $alias->{'dom'} www\.$alias->{'dom'}/gi;
+      &$virtual_server::first_print("nginx feature_setup_alias: alias ".$alias->{'dom'}." added for domain ".$d->{'dom'});
+  }
 
   open(CONFFILE, ">" . $conf_dir . $sites_available_dir . $d->{'dom'} . ".conf");
   print(CONFFILE $conf);
